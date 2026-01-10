@@ -13,20 +13,19 @@ let inputText = ref('');
 async function sendMessage(){
   await supabaseClient.from('siteMessages').insert({
     id: 0, 
-    created_at: '',
     message: inputText.value
   })
 }
 
-async function send_message_cheating(){
-  sendMessage();
-}
+//async function send_message_cheating(){
+//   sendMessage();
+// }
 
 </script>
 
 <template>
   <input v-model="inputText">enter a message</input>
-  <button>send message</button>
+  <button @click="sendMessage">send message</button>
   <p>input value: {{inputText}}</p>   
 </template>
 
