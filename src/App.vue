@@ -16,6 +16,22 @@ async function sendMessage(){
   })
 }
 
+// Get the highest id from siteMessages table
+async function getHighestId() {
+  const { data, error } = await supabaseClient
+    .from('siteMessages')
+    .select('id')
+    .order('id', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (error) {
+    console.error('Error fetching highest id:', error);
+    return null;
+  }
+  return data ? data.id : null;
+}
+
 //async function send_message_cheating(){
 //   sendMessage();
 // }
