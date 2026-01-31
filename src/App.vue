@@ -16,6 +16,33 @@ async function sendMessage(){
   })
 }
 
+const messages = ref(['']);
+
+async function fetchMessages() {
+  const { data, error } = await supabaseClient
+    .from('siteMessages')
+    .select('message');
+
+  if (error) {
+    console.error('Error fetching messages:', error);
+    messages.value = [];
+  }
+  else {
+    console.log(data.length);
+    messages.value = data.map((item: { message: string }) => item.message);
+    console.log([...messages.value]);
+  }
+
+}
+function getMessageBoardStyle() {
+  return {
+    backgroundColor: 'blue',
+    padding: '16px',
+    borderRadius: '8px',
+    color: 'white'
+  };
+}
+
 // Get the highest id from siteMessages table
 async function getHighestId() {
   const { data, error } = await supabaseClient
@@ -41,7 +68,8 @@ async function getHighestId() {
 <template>
   <input v-model="inputText">enter a message</input>
   <button @click="sendMessage">send message</button>
-  <p>input value: {{inputText}}</p>   
+  <p>input value: {{inputText}}</p> 
+  <button @click="fetchMessages">fetch Messages</button>  
 </template>
 
 
