@@ -16,7 +16,7 @@ async function sendMessage(){
   })
 }
 
-const messages = ref(['']);
+const messages = ref<string[]>([]);
 
 async function fetchMessages() {
   const { data, error } = await supabaseClient
@@ -69,7 +69,14 @@ async function getHighestId() {
   <input v-model="inputText">enter a message</input>
   <button @click="sendMessage">send message</button>
   <p>input value: {{inputText}}</p> 
-  <button @click="fetchMessages">fetch Messages</button>  
+  <button @click="fetchMessages">fetch Messages</button>
+  
+  <div v-if="messages.length > 0" :style="getMessageBoardStyle()">
+    <h3>Messages:</h3>
+    <ul>
+      <li v-for="(msg, idx) in messages" :key="idx">{{ msg }}</li>
+    </ul>
+  </div>
 </template>
 
 
