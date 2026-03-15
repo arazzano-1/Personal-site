@@ -11,9 +11,13 @@ let inputText = ref('');
 
 //insert input text message into siteMessages table
 async function sendMessage(){
-  await supabaseClient.from('siteMessages').insert({
-    message: inputText.value
-  })
+  if (inputText.value != '') {
+    await supabaseClient.from('siteMessages').insert({
+      message: inputText.value
+    });
+    inputText.value = '';
+  }
+  
 }
 
 const messages = ref<string[]>([]);
