@@ -1,88 +1,70 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { supabaseClient } from './supabase';
-
-
-//import { RouterLink, RouterView } from 'vue-router'
-//import HelloWorld from './components/HelloWorld.vue'
-
-let inputText = ref('');
-
-
-//insert input text message into siteMessages table
-async function sendMessage(){
-  if (inputText.value != '') {
-    await supabaseClient.from('siteMessages').insert({
-      message: inputText.value
-    });
-    inputText.value = '';
-  }
-  
-}
-
-const messages = ref<string[]>([]);
-
-async function fetchMessages() {
-  const { data, error } = await supabaseClient
-    .from('siteMessages')
-    .select('message');
-
-  if (error) {
-    console.error('Error fetching messages:', error);
-    messages.value = [];
-  }
-  else {
-    console.log(data.length);
-    messages.value = data.map((item: { message: string }) => item.message);
-    console.log([...messages.value]);
-  }
-
-}
-function getMessageBoardStyle() {
-  return {
-    backgroundColor: 'blue',
-    padding: '16px',
-    borderRadius: '8px',
-    color: 'white'
-  };
-}
-
-// Get the highest id from siteMessages table
-async function getHighestId() {
-  const { data, error } = await supabaseClient
-    .from('siteMessages')
-    .select('id')
-    .order('id', { ascending: false })
-    .limit(1)
-    .single();
-
-  if (error) {
-    console.error('Error fetching highest id:', error);
-    return null;
-  }
-  return data ? data.id : null;
-}
-
-//async function send_message_cheating(){
-//   sendMessage();
-// }
-
+import { RouterLink, RouterView } from 'vue-router'
 </script>
 
 <template>
-  <input v-model="inputText">enter a message</input>
-  <button @click="sendMessage">send message</button>
-  <p>input value: {{inputText}}</p> 
-  <button @click="fetchMessages">fetch Messages</button>
-  
-  <div v-if="messages.length > 0" :style="getMessageBoardStyle()">
-    <h3>Messages:</h3>
-    <ul>
-      <li v-for="(msg, idx) in messages" :key="idx">{{ msg }}</li>
-    </ul>
+  <div class="app-shell">
+    <header class="site-header">
+      <div class="brand">Personal Site</div>
+      <nav class="nav-links">
+        <RouterLink class="nav-link" to="/">Home</RouterLink>
+        <RouterLink class="nav-link" to="/messages">Messages</RouterLink>
+      </nav>
+    </header>
+
+    <main class="site-main">
+      <RouterView />
+    </main>
   </div>
 </template>
 
+<style scoped>
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
 
+.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--color-border);
+}
 
+.brand {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
 
+.nav-links {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.nav-link {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.nav-link.router-link-exact-active {
+  background-color: var(--color-background-soft);
+  border-color: var(--color-border-hover);
+}
+
+.nav-link:hover {
+  border-color: var(--color-border-hover);
+}
+
+.site-main {
+  flex: 1;
+  padding-top: 24px;
+}
+</style>
