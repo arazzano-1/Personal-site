@@ -3,10 +3,19 @@ import { onMounted, ref } from 'vue'
 import { supabaseClient } from '../supabase'
 
 const inputText = ref('')
-const messages = ref<string[]>([])
+type MessageItem = {
+  id: number
+  message: string
+}
+
+const messages = ref<MessageItem[]>([])
 const isSending = ref(false)
 const isLoading = ref(false)
 const errorMessage = ref('')
+const editingId = ref<number | null>(null)
+const editText = ref('')
+const savingId = ref<number | null>(null)
+const deletingId = ref<number | null>(null)
 
 async function sendMessage() {
   const trimmed = inputText.value.trim()
@@ -19,7 +28,7 @@ async function sendMessage() {
 
   const { error } = await supabaseClient
     .from('siteMessages')
-    .insert({ message: trimmed });
+    .insert({ message: trimmed })
 
   if (error) {
     console.error('Error sending message:', error)
@@ -43,18 +52,88 @@ async function fetchMessages() {
 
   const { data, error } = await supabaseClient
     .from('siteMessages')
-    .select('message')
+    .select('id, message')
     .order('id', { ascending: false })
+    .limit(10)
 
   if (error) {
     console.error('Error fetching messages:', error)
     messages.value = []
     errorMessage.value = 'Failed to load messages.'
   } else {
-    messages.value = data.map((item: { message: string }) => item.message)
+    messages.value = data as MessageItem[]
   }
 
   isLoading.value = false
+}
+
+function startEdit(message: MessageItem) {
+  editingId.value = message.id
+  editText.value = message.message
+}
+
+function cancelEdit() {
+  editingId.value = null
+  editText.value = ''
+}
+
+async function saveEdit(messageId: number) {
+  const trimmed = editText.value.trim()
+  if (!trimmed || savingId.value === messageId) {
+    return
+  }
+
+  savingId.value = messageId
+  errorMessage.value = ''
+
+  const { error } = await supabaseClient
+    .from('siteMessages')
+    .update({ message: trimmed })
+    .eq('id', messageId)
+
+  if (error) {
+    console.error('Error updating message:', error)
+    errorMessage.value = 'Failed to update message.'
+  } else {
+    const target = messages.value.find((msg) => { return msg.id === messageId})
+    if (target) {
+      target.message = trimmed
+    }
+    cancelEdit()
+  }
+
+  savingId.value = null
+}
+
+async function deleteMessage(messageId: number) {
+  if (deletingId.value === messageId) {
+    return
+  }
+
+  const confirmed = window.confirm('Delete this message?')
+  if (!confirmed) {
+    return
+  }
+
+  deletingId.value = messageId
+  errorMessage.value = ''
+
+  const { error } = await supabaseClient
+    .from('siteMessages')
+    .delete()
+    .eq('id', messageId)
+
+  if (error) {
+    console.error('Error deleting message:', error)
+    errorMessage.value = 'Failed to delete message.'
+  } else {
+    messages.value = messages.value.filter((msg) => msg.id !== messageId)
+    if (editingId.value === messageId) {
+      cancelEdit()
+    }
+  }
+
+  deletingId.value = null
 }
 
 onMounted(() => {
@@ -93,7 +172,39 @@ onMounted(() => {
         No messages yet. Be the first to leave one.
       </p>
       <ul v-else>
-        <li v-for="(msg, idx) in messages" :key="idx">{{ msg }}</li>
+        <li v-for="msg in messages" :key="msg.id">
+          <div v-if="editingId === msg.id" class="edit-row">
+            <textarea v-model="editText" rows="2"></textarea>
+            <div class="row-actions">
+              <button
+                class="secondary"
+                @click="cancelEdit"
+                :disabled="savingId === msg.id"
+              >
+                Cancel
+              </button>
+              <button
+                @click="saveEdit(msg.id)"
+                :disabled="savingId === msg.id || !editText.trim()"
+              >
+                {{ savingId === msg.id ? 'Saving...' : 'Save' }}
+              </button>
+            </div>
+          </div>
+          <div v-else class="message-row">
+            <p class="message-text">{{ msg.message }}</p>
+            <div class="row-actions">
+              <button class="secondary" @click="startEdit(msg)">Edit</button>
+              <button
+                class="danger"
+                @click="deleteMessage(msg.id)"
+                :disabled="deletingId === msg.id"
+              >
+                {{ deletingId === msg.id ? 'Deleting...' : 'Delete' }}
+              </button>
+            </div>
+          </div>
+        </li>
       </ul>
     </div>
   </section>
@@ -178,10 +289,32 @@ button:disabled {
 }
 
 .message-board li {
-  padding: 10px 12px;
+  padding: 12px;
   border-radius: 8px;
   background: var(--color-background);
   border: 1px solid var(--color-border);
+}
+
+.message-row,
+.edit-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.message-text {
+  margin: 0;
+}
+
+.row-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.danger {
+  background: #b42318;
+  color: #fff;
 }
 
 .empty-state {
